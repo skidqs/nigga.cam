@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title></title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Carian&display=swap" rel="stylesheet">
+<style>
+body {
+  margin:0;
+  padding:0;
+  background:black;
+  color:white;
+  font-family: 'Noto Sans Carian', sans-serif;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  align-items:center;
+  height:100vh;
+  overflow:hidden;
+  user-select:none;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+}
+
+.center-text {
+  position:absolute;
+  top:40%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  text-align:center;
+}
+
+.center-text h1 {
+  font-size:5em;
+  margin:0;
+  color:white;
+}
+
+.center-text p {
+  font-size:2em;
+  margin-top:10px;
+  color:grey;
+}
+
+.countdown {
+  display:flex;
+  gap:15px;
+  margin-bottom:40px;
+  font-size:2em;
+}
+
+.flip-unit {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.flip-number {
+  background:transparent;
+  border:none;
+  padding:12px 18px;
+  border-radius:0;
+  font-size:2em;
+  min-width:50px;
+  text-align:center;
+  color:white;
+}
+
+.label { 
+  font-size:0.7em;
+  color:#ccc; 
+  margin-top:4px; 
+}
+
+#canvas {
+  position:fixed;
+  top:0;
+  left:0;
+  z-index:0;
+}
+</style>
+</head>
+<body oncontextmenu="return false;" onselectstart="return false;" ondragstart="return false;">
+
+<div class="center-text">
+  <h1>Zero Config</h1>
+  <p>We took it down, You're too late.</p>
+</div>
+
+<div class="countdown">
+  <div class="flip-unit"><div id="days" class="flip-number">00</div><div class="label">DAYS</div></div>
+  <div class="flip-unit"><div id="hours" class="flip-number">00</div><div class="label">HRS</div></div>
+  <div class="flip-unit"><div id="minutes" class="flip-number">00</div><div class="label">MIN</div></div>
+  <div class="flip-unit"><div id="seconds" class="flip-number">00</div><div class="label">SEC</div></div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+class Particle {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 1.2;
+    this.vy = (Math.random() - 0.5) * 1.2;
+    this.size = 2;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = 'white';
+    ctx.fill();
+  }
+}
+
+function connectParticles() {
+  for (let a = 0; a < particles.length; a++) {
+    for (let b = a + 1; b < particles.length; b++) {
+      let dx = particles[a].x - particles[b].x;
+      let dy = particles[a].y - particles[b].y;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < 150) {
+        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - distance / 150})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(particles[a].x, particles[a].y);
+        ctx.lineTo(particles[b].x, particles[b].y);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function init() {
+  particles = [];
+  for (let i = 0; i < 150; i++) {
+    let x = Math.random() * canvas.width;
+    let y = Math.random() * canvas.height;
+    particles.push(new Particle(x, y));
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  connectParticles();
+  requestAnimationFrame(animate);
+}
+
+init();
+animate();
+
+let startTime = localStorage.getItem('zeroConfigCountdownStart');
+if (!startTime) {
+  startTime = Date.now();
+  localStorage.setItem('zeroConfigCountdownStart', startTime);
+}
+const countdownDuration = 100 * 24 * 60 * 60 * 1000;
+
+function updateCountdown() {
+  const now = Date.now();
+  let distance = countdownDuration - (now - startTime);
+  if(distance < 0) distance = 0;
+
+  const days = Math.floor(distance / (1000*60*60*24));
+  const hours = Math.floor((distance % (1000*60*60*24)) / (1000*60*60));
+  const minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
+  const seconds = Math.floor((distance % (1000*60)) / 1000);
+
+  document.getElementById('days').textContent = days.toString().padStart(2,'0');
+  document.getElementById('hours').textContent = hours.toString().padStart(2,'0');
+  document.getElementById('minutes').textContent = minutes.toString().padStart(2,'0');
+  document.getElementById('seconds').textContent = seconds.toString().padStart(2,'0');
+}
+
+setInterval(updateCountdown, 1000);
+updateCountdown();
+</script>
+</body>
+</html>
